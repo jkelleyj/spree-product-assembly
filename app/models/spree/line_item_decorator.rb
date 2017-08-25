@@ -57,7 +57,7 @@ module Spree
     end
 
     def quantity_without_part_line_items(quantity)
-      product.assemblies_parts.each_with_object({}) do |ap, hash|
+      variant.parts_variants.each_with_object({}) do |ap, hash|
         hash[ap.part] = ap.count * quantity
       end
     end
