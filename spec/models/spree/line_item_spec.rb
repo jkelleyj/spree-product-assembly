@@ -9,35 +9,100 @@ module Spree
     context "bundle parts stock" do
       let(:parts) { (1..2).map { create(:variant) } }
 
-      before { product.master.parts << parts }
+      context 'assembly without variants' do
+        before { product.master.parts << parts }
 
-      context "one of them not in stock" do
-        before do
-          part = product.parts.first
-          part.stock_items.update_all backorderable: false
+        context "one of them not in stock" do
+          before do
+            part = product.parts.first
+            part.stock_items.update_all backorderable: false
 
-          expect(part).not_to be_in_stock
+            expect(part).not_to be_in_stock
+          end
+
+          it "doesn't save line item quantity" do
+            expect { order.contents.add(variant, 10) }.to(
+              raise_error ActiveRecord::RecordInvalid
+            )
+          end
         end
 
-        it "doesn't save line item quantity" do
-          expect { order.contents.add(variant, 10) }.to(
-            raise_error ActiveRecord::RecordInvalid
-          )
+        context "in stock" do
+          before do
+            parts.each do |part|
+              part.stock_items.first.set_count_on_hand(10)
+            end
+            expect(parts[0]).to be_in_stock
+            expect(parts[1]).to be_in_stock
+          end
+
+          it "saves line item quantity" do
+            line_item = order.contents.add(variant, 10)
+            expect(line_item).to be_valid
+          end
         end
       end
 
-      context "in stock" do
+      context 'multi-variant assembly' do
+        let(:assembly1) { variant }
+        let(:assembly2) { create(:variant) }
+
+        let(:parts2) { (1..2).map { create(:variant) } }
+
         before do
-          parts.each do |part|
-            part.stock_items.first.set_count_on_hand(10)
-          end
-          expect(parts[0]).to be_in_stock
-          expect(parts[1]).to be_in_stock
+          product.variants << assembly1
+          product.variants << assembly2
+
+          assembly1.parts << parts
+          assembly2.parts << parts2
         end
 
-        it "saves line item quantity" do
-          line_item = order.contents.add(variant, 10)
-          expect(line_item).to be_valid
+        context "one part of desired assembly variant not in stock" do
+          before do
+            part = product.parts.first
+            part.stock_items.update_all backorderable: false
+
+            expect(part).not_to be_in_stock
+          end
+
+          it "doesn't save line item quantity" do
+            expect { order.contents.add(variant, 10) }.to(
+              raise_error ActiveRecord::RecordInvalid
+            )
+          end
+        end
+
+        context "in stock" do
+          before do
+            [parts, parts2].each do |parts_list|
+              parts_list.each do |part|
+                part.stock_items.first.set_count_on_hand(10)
+              end
+
+              expect(parts_list[0]).to be_in_stock
+              expect(parts_list[1]).to be_in_stock
+            end
+          end
+
+          it "saves line item quantity" do
+            line_item = order.contents.add(variant, 10)
+            expect(line_item).to be_valid
+          end
+
+          context "one part of other assembly variant not in stock" do
+            before do
+              part = parts2.first
+              part.stock_items.update_all backorderable: false
+              part.stock_items.first.set_count_on_hand(0)
+
+              expect(part).not_to be_in_stock
+            end
+
+            it "saves line item quantity" do
+              line_item = order.contents.add(variant, 10)
+              expect(line_item).to be_valid
+            end
+          end
         end
       end
     end
