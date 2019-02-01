@@ -14,7 +14,24 @@
   <% end %>
 </div>
 
+
+<div data-hook="admin_product_form_add_parts_individually">
+  <%= f.field_container :individual_sale, class: ['form-group'] do %>
+    <%= f.label :individual_sale %>
+    <%= f.error_message_on :individual_sale %>
+    <%= f.check_box :individual_sale, class: 'form-control' %>
+  <% end %>
+</div>
+
 <% if @product.assembly? %>
+  <div data-hook="admin_product_form_add_parts_individually">
+    <%= f.field_container :add_parts_individually, class: ['form-group'] do %>
+      <%= f.label :add_parts_individually %>
+      <p class='help-block'> If this product has parts, should they be added to the cart as individual line items?</p>
+      <%= f.error_message_on :add_parts_individually %>
+      <%= f.check_box :add_parts_individually, class: 'form-control' %>
+    <% end %>
+  </div>
   <% content_for :head do %>
     <script type="text/javascript">
       jQuery(document).ready(function(){

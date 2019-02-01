@@ -1,6 +1,23 @@
 module Spree
   OrderContents.class_eval do
 
+    def add(variant, quantity = 1, options = {})
+      timestamp = Time.current
+      if variant.parts.any? && variant.product.add_parts_individually
+        line_items = add_parts_individually(variant, quantity, options)
+        line_items.each do |line_item|
+          options[:line_item_created] = (timestamp <= line_item.created_at)
+          after_add_or_remove(line_item, options)
+        end
+        line_items.last
+      else
+        line_item = add_to_line_item(variant, quantity, options)
+        options[:line_item_created] = true if timestamp <= line_item.created_at
+        after_add_or_remove(line_item, options)
+      end
+    end
+
+
     def add_to_line_item(variant, quantity, options = {})
       line_item = grab_line_item_by_variant(variant, false, options)
 
@@ -35,6 +52,18 @@ module Spree
     alias_method :add_to_line_item, :add_to_line_item_with_parts
 
     private
+
+    def add_parts_individually(variant, quantity, options = {})
+      variant.parts_variants.map do |part_variant|
+        selected_variants = options[:selected_variants]
+        variant_id = variant_id_for(part_variant, selected_variants)
+        qty = part_variant.count * quantity
+
+        # uses add_to_line_item to ensure any other extensions overriding that method
+        # are also triggered and to ensure items are matched to existing cart items
+        add_to_line_item(Spree::Variant.find(variant_id), qty, options)
+      end
+    end
 
     def part_variants_match?(line_item, variant, quantity, options)
       if line_item.parts.any? && options["selected_variants"]
