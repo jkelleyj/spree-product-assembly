@@ -4,6 +4,7 @@ en:
     available_parts: Available parts
     can_be_part: Can be part
     individual_sale: Individual sale
+    add_parts_individually: 'Add parts individually?'
     no_variants: No variants
     parts: Parts
     assembly_cannot_be_part: assembly can't be part
