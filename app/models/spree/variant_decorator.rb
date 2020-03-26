@@ -12,4 +12,16 @@ Spree::Variant.class_eval do
   def part?
     assemblies.exists?
   end
+
+  # this computes how many assemblies are actually available for a variant by looking at the
+  # total on hand for all parts and deferred variant parts
+  def total_assemblies_available
+    if is_master? && product.has_variants?
+      # total avail is the sum of all variants on the master's product
+      product.variants.map { |v| v.total_assemblies_available }.sum
+    else
+      # for a variant, the total available is bottlenecked by the least available part
+      parts_variants.map(&:total_assemblies_available).min
+    end
+  end
 end

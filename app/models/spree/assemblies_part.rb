@@ -22,6 +22,14 @@ module Spree
       end
     end
 
+    def total_assemblies_available
+      if variant_selection_deferred?
+        self.part.product.variants.map { |pv_v| pv_v.total_on_hand / self.count }.sum
+      else
+        self.part.total_on_hand / self.count
+      end
+    end
+
     private
 
     def set_master_unlimited_stock

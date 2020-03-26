@@ -12,6 +12,7 @@ Spree::Product.class_eval do
   }
 
   validate :assembly_cannot_be_part, if: :assembly?
+  delegate :total_assemblies_available, to: :master
 
   def variants_or_master
     has_variants? ? variants : [master]
